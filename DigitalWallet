@@ -1,0 +1,56 @@
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+
+// Author: Luis Felipe Silva Rezende Soares, ITA, Brazil
+contract MetaMaskBR{
+
+    address local;
+    address payable DonodeVdd;
+
+    constructor() {
+        DonodeVdd = payable(msg.sender);
+    }
+    
+
+    modifier isADM {
+        require (msg.sender == DonodeVdd);
+        _;
+    }
+
+    modifier isNotADM {
+        require (msg.sender != DonodeVdd);
+        _;
+    }
+
+      function ETHUSD() public view returns (uint256) {
+        AggregatorV3Interface ctt = AggregatorV3Interface(local);
+        (,int256 ethUsd,,,) = ctt.latestRoundData();
+        return uint256(ethUsd); 
+    }
+
+    address[] public credores;
+    mapping(address => uint256) public grana_dessa_carteira;
+    function transferir() public isNotADM payable {
+        uint256 cash;
+        cash = ETHUSD()*msg.value/10**18;
+        require(cash >= 1, "Too low of a funding. AT LEAST 1 USD! Vambora!!");
+        grana_dessa_carteira[msg.sender] += msg.value;
+        credores.push(msg.sender);
+    }
+
+    function sacar(uint256 dinheiro) public isADM payable {
+        payable(msg.sender).transfer(dinheiro);
+    }
+
+    uint256[] depositos;
+    function depositar() public isADM payable {
+        depositos.push(msg.value);
+    }
+
+    function extrato(uint256 index) public view returns(uint256) {
+        return depositos[index];
+    }
+
+}
