@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+
+contract DigitalWallet{
+
+    address ADM;
+    address ETH_USD_Interface = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
+    // 0x9326BFA02ADD2366b30bacB125260Af641031331 - Kovan
+    // 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e - Rinkeby
+    // 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419 - MainNet
+    constructor(){
+        ADM = msg.sender;
+    }
+
+    modifier isADM {
+        require(msg.sender == ADM, "Nope! You must be the ADM, silly!");
+        _;
+    }
+    struct payer{
+        address wallet;
+        uint256 amount_payed;
+        string name;
+    }
+
+    payer[] public deposits;
+    payer[] public withdraws;
+    payer[] public transactions;
+    mapping (string => address) public wallet_of;
+
+    mapping(address => uint256) public amount_payed_by;
+    function payment(string memory _name) public payable {
+        amount_payed_by[msg.sender] += msg.value;
+        wallet_of[_name] = msg.sender;
+        payer memory newpayer;
+        newpayer = payer(msg.sender, msg.value, _name);
+        deposits.push(newpayer);
+        transactions.push(newpayer);
+    }
+
+    function withdraw(string memory _name) public isADM payable{
+        payable(msg.sender).transfer(address(this).balance);
+        payer memory newpayer;
+        newpayer = payer(msg.sender, address(this).balance, _name);
+        withdraws.push(newpayer);
+        transactions.push(newpayer);
+    }
+
+    function retrieveNonce() public view returns(uint256){
+        return transactions.length;
+    }
+    function Current_BalanceETH() public isADM view returns (uint256) {
+        return address(this).balance;
+    }
+    
+    function Current_in_USD() public isADM view returns (uint256) {
+        uint256 balanceUSD;
+        balanceUSD = ConversionRate()*Current_BalanceETH()/10**18;
+        return balanceUSD;
+    }
+
+    function ConversionRate() public view returns(uint256) {
+        AggregatorV3Interface ctt = AggregatorV3Interface(ETH_USD_Interface);
+        (,int conversion, , , ) = ctt.latestRoundData();
+        return uint256(conversion);
+    }
+
+}
