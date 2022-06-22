@@ -22,7 +22,7 @@ contract BailOutLock{
     }
 
       modifier Crash {
-        require(currentETH() > price);
+        require(currentETH() < price);
         _;
     }
     
