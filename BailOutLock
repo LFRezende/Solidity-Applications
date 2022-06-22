@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+contract BailOutLock{
+
+    address owner;
+    address net_address = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
+    uint256 price;
+
+    // 0x9326BFA02ADD2366b30bacB125260Af641031331 - Kovan
+    // 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e - Rinkeby
+    // 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419 - MainNet
+
+    constructor (){
+        owner = msg.sender;
+        price = currentETH()*0.5; // So the contract has a buffer not to withdraw automatically.
+    }
+
+    modifier isADM {
+        msg.sender == owner;
+        _;
+    }
+
+      modifier Crash {
+        require(currentETH() > price);
+        _;
+    }
+    
+    function deposit () public payable{}
+
+    function withdraw () public isADM Crash payable{
+        payable(msg.sender).transfer(address(this).balance);
+    }
+    function setPrice(uint256 _price) isADM public returns (uint256) {
+        price = _price;
+        return price;
+    }
+    function currentETH() public view returns (uint256){
+        AggregatorV3Interface ctt = AggregatorV3Interface(net_address);
+        (,int conversion, , , ) = ctt.latestRoundData();
+        return uint256(conversion);
+    }
+}
